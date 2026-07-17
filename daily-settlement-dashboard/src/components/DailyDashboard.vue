@@ -1,233 +1,165 @@
 <template>
   <div class="page-wrapper">
     <div class="container-xl">
-      <!-- 顶部操作栏 -->
-      <div class="row g-2 align-items-center mb-4">
+      <!-- 顶部工具栏 -->
+      <div class="row g-2 align-items-center mb-3">
         <div class="col">
-          <h2 class="page-title">每日项目结算看板</h2>
+          <h2 class="page-title">📋 每日结算看板</h2>
         </div>
         <div class="col-auto d-flex gap-2">
-          <input type="date" class="form-control" v-model="selectedDate" />
-          <button 
-            class="btn btn-primary" 
-            @click="addNewRow"
-            :disabled="isEditing"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
-            新增任务
-          </button>
+          <input type="date" v-model="selectedDate" class="form-control w-auto" />
+          <button class="btn btn-primary" @click="addNewRow">+ 新增任务</button>
         </div>
       </div>
 
-      <!-- KPI 卡片（保持不变） -->
-      <div class="row row-deck row-cards mb-4">
-        <div class="col-sm-6 col-lg-3">
-          <div class="card"><div class="card-body">
-            <div class="subheader">有效任务数</div>
-            <div class="h1 mb-0">{{ stats.validTasks }}</div>
-          </div></div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-          <div class="card"><div class="card-body">
-            <div class="subheader">总实际工时</div>
-            <div class="h1 mb-0">{{ stats.totalHours.toFixed(1) }}h</div>
-          </div></div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-          <div class="card"><div class="card-body">
-            <div class="subheader">延期预警</div>
-            <div class="h1 mb-0" :class="stats.delayedCount > 0 ? 'text-red' : ''">{{ stats.delayedCount }}</div>
-          </div></div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-          <div class="card"><div class="card-body">
-            <div class="subheader mb-2">人员状态</div>
-            <div class="d-flex gap-2 flex-wrap">
-              <span class="badge bg-green-lt text-green">{{ statusCount.working }} 工作</span>
-              <span class="badge bg-blue-lt text-blue">{{ statusCount.standby }} 待命</span>
-              <span class="badge bg-yellow-lt text-yellow">{{ statusCount.leave }} 请假</span>
-            </div>
-          </div></div>
-        </div>
-      </div>
-
-      <!-- ✅ 可编辑数据表格 -->
+      <!-- 数据表格 -->
       <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h3 class="card-title">当日任务明细</h3>
-          <span v-if="isEditing" class="badge bg-yellow-lt text-yellow">编辑中...</span>
-        </div>
         <div class="table-responsive">
           <table class="table table-vcenter card-table table-striped">
             <thead>
               <tr>
                 <th style="width:100px">执行人</th>
-                <th style="width:90px">状态</th>
+                <th style="width:80px">状态</th>
                 <th style="width:120px">客户</th>
                 <th>工作内容</th>
-                <th style="width:70px" class="text-end">数量</th>
-                <th style="width:70px">等级</th>
-                <th style="width:60px" class="text-center">延期</th>
-                <th style="width:60px" class="text-center">取消</th>
-                <th style="width:90px">起始时间</th>
-                <th style="width:90px">完成时间</th>
-                <th style="width:110px">项目执行人</th>
-                <th style="width:90px" class="text-end">实际用时</th>
-                <th style="width:90px" class="text-end">延期时间</th>
-                <th style="width:180px">延期原因</th>
-                <th style="width:80px" class="text-center">操作</th>
+                <th style="width:60px">等级</th>
+                <th style="width:90px">开始时间</th>
+                <th style="width:90px">结束时间</th>
+                <!-- ✅ 拆分为三列 -->
+                <th style="width:90px" class="text-end">正常工时</th>
+                <th style="width:90px" class="text-end">加班</th>
+                <th style="width:90px" class="text-end">总工时</th>
+                <th style="width:60px">延期</th>
+                <th style="width:60px">取消</th>
+                <th style="width:100px">操作</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(task, index) in editableTasks" :key="task._uid">
                 <!-- 执行人 -->
                 <td>
-                  <EditableSelect 
-                    v-model="task.executor" 
+                  <EditableSelect
+                    v-if="task._editing"
+                    v-model="task.executor"
                     :options="dynamicOptions.executors"
-                    placeholder="选择/添加"
+                    placeholder="选择/输入"
                     @add-option="(val: string) => addDynamicOption('executors', val)"
-                    :readonly="!task._editing"
                   />
+                  <span v-else>{{ task.executor }}</span>
                 </td>
+
                 <!-- 状态 -->
                 <td>
-                  <EditableSelect 
-                    v-model="task.status" 
-                    :options="STATUS_OPTIONS"
-                    :readonly="!task._editing"
-                  />
+                  <select v-if="task._editing" v-model="task.status" class="form-select form-select-sm">
+                    <option value="工作">工作</option>
+                    <option value="待命">待命</option>
+                    <option value="请假">请假</option>
+                  </select>
+                  <span v-else class="badge" :class="{
+                    'bg-blue-lt text-blue': task.status === '工作',
+                    'bg-gray-lt text-gray': task.status === '待命',
+                    'bg-yellow-lt text-yellow': task.status === '请假',
+                  }">{{ task.status }}</span>
                 </td>
+
                 <!-- 客户 -->
                 <td>
-                  <EditableSelect 
-                    v-model="task.client" 
+                  <EditableSelect
+                    v-if="task._editing"
+                    v-model="task.client"
                     :options="dynamicOptions.clients"
-                    placeholder="选择/添加"
-                    @add-option="(val: string) => addDynamicOption('executors', val)"
-                    :readonly="!task._editing"
+                    placeholder="选择/输入"
+                    @add-option="(val: string) => addDynamicOption('clients', val)"
                   />
+                  <span v-else>{{ task.client }}</span>
                 </td>
+
                 <!-- 工作内容 -->
                 <td>
-                  <input 
-                    v-if="task._editing"
-                    v-model="task.content" 
-                    class="form-control form-control-sm" 
-                    placeholder="输入工作内容"
-                  />
-                  <span v-else class="text-secondary text-truncate d-block" style="max-width:200px" :title="task.content">{{ task.content }}</span>
+                  <input v-if="task._editing" v-model="task.content" class="form-control form-control-sm" placeholder="工作内容" />
+                  <span v-else>{{ task.content }}</span>
                 </td>
-                <!-- 数量 -->
-                <td class="text-end">
-                  <input 
-                    v-if="task._editing"
-                    v-model.number="task.quantity" 
-                    type="number" min="0" step="1"
-                    class="form-control form-control-sm text-end" 
-                  />
-                  <span v-else>{{ task.quantity }}</span>
-                </td>
+
                 <!-- 等级 -->
                 <td>
-                  <EditableSelect 
-                    v-model="task.level" 
-                    :options="LEVEL_OPTIONS"
-                    :readonly="!task._editing"
-                  />
+                  <select v-if="task._editing" v-model="task.level" class="form-select form-select-sm">
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                  </select>
+                  <span v-else class="badge" :class="{
+                    'bg-green-lt text-green': task.level === 'A',
+                    'bg-blue-lt text-blue': task.level === 'B',
+                    'bg-gray-lt text-gray': task.level === 'C',
+                  }">{{ task.level }}</span>
                 </td>
-                <!-- 延期 -->
-                <td class="text-center">
-                  <input 
-                    v-if="task._editing"
-                    v-model="task.is_delayed" 
-                    type="checkbox" 
-                    class="form-check-input m-0"
-                  />
-                  <span v-else>{{ task.is_delayed ? '⚠️' : '-' }}</span>
-                </td>
-                <!-- 取消 -->
-                <td class="text-center">
-                  <input 
-                    v-if="task._editing"
-                    v-model="task.is_cancelled" 
-                    type="checkbox" 
-                    class="form-check-input m-0"
-                  />
-                  <span v-else>{{ task.is_cancelled ? '❌' : '-' }}</span>
-                </td>
-                <!-- 起始/完成时间 -->
+
+                <!-- 开始时间 -->
                 <td>
                   <input v-if="task._editing" v-model="task.start_time" type="time" class="form-control form-control-sm" />
-                  <span v-else class="text-secondary">{{ formatTime(task.start_time) }}</span>
+                  <span v-else>{{ task.start_time }}</span>
                 </td>
+
+                <!-- 结束时间 -->
                 <td>
                   <input v-if="task._editing" v-model="task.end_time" type="time" class="form-control form-control-sm" />
-                  <span v-else class="text-secondary">{{ formatTime(task.end_time) }}</span>
+                  <span v-else>{{ task.end_time }}</span>
                 </td>
-                <!-- 项目执行人 -->
-                <td>
-                  <EditableSelect 
-                    v-model="task.project_manager" 
-                    :options="dynamicOptions.managers"
-                    placeholder="选择/添加"
-                    @add-option="(val: string) => addDynamicOption('executors', val)"
-                    :readonly="!task._editing"
-                  />
-                </td>
-                <!-- 实际用时（自动计算，只读） -->
-                <td class="text-end fw-bold">
-                  {{ calcDuration(task) }}
-                </td>
-                <!-- 延期时间 -->
+
+                <!-- ✅ 正常工时 -->
                 <td class="text-end">
-                  <input 
-                    v-if="task._editing && task.is_delayed"
-                    v-model.number="task.delay_hours" 
-                    type="number" min="0" step="0.5"
-                    class="form-control form-control-sm text-end border-red" 
-                  />
-                  <span v-else :class="task.is_delayed ? 'text-red' : 'text-secondary'">
-                    {{ task.is_delayed ? (task.delay_hours?.toFixed(2) + 'h') : '-' }}
-                  </span>
+                  <span v-if="task._editing" class="text-secondary fst-italic">{{ formatHours(task, 'normal') }}</span>
+                  <span v-else>{{ formatHours(task, 'normal') }}</span>
                 </td>
-                <!-- 延期原因 -->
-                <td>
-                  <input 
-                    v-if="task._editing && task.is_delayed"
-                    v-model="task.delay_reason" 
-                    class="form-control form-control-sm border-red" 
-                    placeholder="填写延期原因"
-                  />
-                  <span v-else class="text-secondary text-truncate d-block" style="max-width:180px" :title="task.delay_reason">
-                    {{ task.is_delayed ? task.delay_reason : '-' }}
+
+                <!-- ✅ 加班（带高亮标识） -->
+                <td class="text-end">
+                  <span v-if="task._editing" class="fst-italic" :class="hasOvertime(task) ? 'text-orange fw-bold' : 'text-secondary'">
+                    {{ formatHours(task, 'overtime') }}
                   </span>
+                  <span v-else-if="hasOvertime(task)" class="badge bg-orange-lt text-orange fw-bold" title="超出 10:00-18:30 工作时间范围">
+                    🔥 {{ formatHours(task, 'overtime') }}
+                  </span>
+                  <span v-else class="text-secondary">-</span>
                 </td>
-                <!-- 操作按钮 -->
+
+                <!-- ✅ 总工时 -->
+                <td class="text-end fw-bold">
+                  <span v-if="task._editing" class="fst-italic">{{ formatHours(task, 'total') }}</span>
+                  <span v-else>{{ formatHours(task, 'total') }}</span>
+                </td>
+
+                <!-- 延期 -->
                 <td class="text-center">
-                  <div class="btn-group btn-group-sm">
-                    <button 
-                      v-if="!task._editing"
-                      class="btn btn-outline-primary" 
-                      @click="startEdit(index)"
-                      title="编辑"
-                    >✏️</button>
+                  <input v-if="task._editing" v-model="task.is_delayed" type="checkbox" class="form-check-input" />
+                  <span v-else-if="task.is_delayed" class="badge bg-red-lt text-red">延期</span>
+                  <span v-else class="text-secondary">-</span>
+                </td>
+
+                <!-- 取消 -->
+                <td class="text-center">
+                  <input v-if="task._editing" v-model="task.is_cancelled" type="checkbox" class="form-check-input" />
+                  <span v-else-if="task.is_cancelled" class="badge bg-gray-lt text-gray">取消</span>
+                  <span v-else class="text-secondary">-</span>
+                </td>
+
+                <!-- 操作按钮 -->
+                <td>
+                  <div class="btn-list flex-nowrap">
+                    <button v-if="!task._editing" class="btn btn-sm btn-outline-primary" @click="startEdit(index)">✏️</button>
                     <template v-else>
-                      <button class="btn btn-success" @click="saveRow(index)" title="保存">✓</button>
-                      <button class="btn btn-outline-danger" @click="cancelEdit(index)" title="取消">✕</button>
+                      <button class="btn btn-sm btn-success" @click="saveRow(index)">💾</button>
+                      <button class="btn btn-sm btn-outline-secondary" @click="cancelEdit(index)">✖</button>
                     </template>
-                    <button 
-                      v-if="!task._editing"
-                      class="btn btn-outline-danger" 
-                      @click="deleteRow(index)"
-                      title="删除"
-                    >🗑️</button>
+                    <button v-if="!task._editing" class="btn btn-sm btn-outline-danger" @click="deleteRow(index)">🗑</button>
                   </div>
                 </td>
               </tr>
+
+              <!-- 空状态 -->
               <tr v-if="editableTasks.length === 0">
-                <td colspan="15" class="text-center text-secondary py-4">
-                  暂无记录，点击右上角「新增任务」添加
+                <td colspan="13" class="text-center text-secondary py-4">
+                  暂无任务，点击「+ 新增任务」添加
                 </td>
               </tr>
             </tbody>
@@ -239,169 +171,185 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue';
-import dayjs from 'dayjs';
+import { ref, computed } from 'vue'
 import EditableSelect from './EditableSelect.vue'
 
 // ==================== 类型定义 ====================
 interface DailyTask {
-  _uid: string;          // 前端唯一标识
-  _editing: boolean;     // 编辑状态标记
-  _backup?: DailyTask;   // 编辑前的快照（用于取消恢复）
-  id?: string;           // 后端ID（新建时为空）
-  date: string;
-  executor: string;
-  status: '工作' | '待命' | '请假';
-  client: string;
-  content: string;
-  quantity: number;
-  level: 'A' | 'B' | 'C';
-  is_delayed: boolean;
-  is_cancelled: boolean;
-  start_time: string;
-  end_time: string;
-  project_manager: string;
-  actual_duration: number;
-  delay_hours?: number;
-  delay_reason?: string;
+  id?: string
+  date: string
+  executor: string
+  status: '工作' | '待命' | '请假'
+  client: string
+  content: string
+  level: 'A' | 'B' | 'C'
+  start_time: string
+  end_time: string
+  actual_duration: number
+  normal_hours: number       // ✅ 新增
+  overtime_hours: number     // ✅ 新增
+  is_delayed: boolean
+  delay_reason?: string
+  is_cancelled: boolean
+  cancel_reason?: string
+  remark?: string
+  // 前端运行时字段
+  _uid: string
+  _editing: boolean
+  _backup?: Omit<DailyTask, '_backup'> & { _uid: string; _editing: boolean }
 }
 
-// ==================== 常量选项 ====================
-const STATUS_OPTIONS = ['工作', '待命', '请假'];
-const LEVEL_OPTIONS = ['A', 'B', 'C'];
+// ==================== 工作时间常量 ====================
+const WORK_START_MIN = 10 * 60   // 10:00 → 600分钟
+const WORK_END_MIN = 18.5 * 60   // 18:30 → 1110分钟
 
-const getTask = (index: number): DailyTask & { _uid: string; _editing: boolean } => {
-  const task = editableTasks.value[index];
-  if (!task) throw new Error(`任务索引 ${index} 不存在`);
-  return task;
-};
+// ==================== 响应式数据 ====================
+const selectedDate = ref(new Date().toISOString().slice(0, 10))
+const editableTasks = ref<(DailyTask)[]>([])
 
-// ==================== 动态选项管理 ====================
-const dynamicOptions = reactive({
+const dynamicOptions = ref({
   executors: ['张三', '李四', '王五'],
-  clients: ['ABC科技', 'XYZ集团'],
-  managers: ['李四', '赵六'],
-});
+  clients: ['客户A', '客户B', '内部'],
+})
 
-const addDynamicOption = (category: keyof typeof dynamicOptions, value: string) => {
-  const trimmed = value.trim();
-  if (trimmed && !dynamicOptions[category].includes(trimmed)) {
-    dynamicOptions[category].push(trimmed);
+// ==================== 安全获取任务（解决TS报错） ====================
+const getTask = (index: number): DailyTask => {
+  const task = editableTasks.value[index]
+  if (!task) throw new Error(`任务索引 ${index} 不存在`)
+  return task
+}
+
+// ==================== ✅ 核心工时计算引擎 ====================
+const calcWorkHours = (startTime: string, endTime: string) => {
+  if (!startTime || !endTime) {
+    return { total: 0, normal: 0, overtime: 0 }
   }
-};
 
-// ==================== 数据状态 ====================
-const selectedDate = ref(dayjs().format('YYYY-MM-DD'));
-const editableTasks = ref<(DailyTask & { _uid: string; _editing: boolean })[]>([]);
-const isEditing = computed(() => editableTasks.value.some(t => t._editing));
+  const startParts = startTime.split(':').map(Number)
+  const endParts = endTime.split(':').map(Number)
+  const startMin = (startParts[0] ?? 0) * 60 + (startParts[1] ?? 0)
+  const endMin = (endParts[0] ?? 0) * 60 + (endParts[1] ?? 0)
 
-// ==================== 编辑操作 ====================
-let uidCounter = 0;
-const generateUid = () => `_new_${++uidCounter}_${Date.now()}`;
+  if (endMin <= startMin) {
+    return { total: 0, normal: 0, overtime: 0 }
+  }
 
+  // 计算与正常工作时间 [10:00, 18:30] 的交集
+  const overlapStart = Math.max(startMin, WORK_START_MIN)
+  const overlapEnd = Math.min(endMin, WORK_END_MIN)
+  const normalMin = Math.max(0, overlapEnd - overlapStart)
+  const totalMin = endMin - startMin
+
+  return {
+    total: +(totalMin / 60).toFixed(2),
+    normal: +(normalMin / 60).toFixed(2),
+    overtime: +((totalMin - normalMin) / 60).toFixed(2),
+  }
+}
+
+// ✅ 供模板使用的格式化函数
+const formatHours = (task: DailyTask, type: 'total' | 'normal' | 'overtime'): string => {
+  if (task._editing) {
+    const result = calcWorkHours(task.start_time, task.end_time)
+    return result[type].toFixed(2) + 'h'
+  }
+  const key = type === 'total' ? 'actual_duration'
+    : type === 'normal' ? 'normal_hours'
+      : 'overtime_hours'
+  return (task[key] ?? 0).toFixed(2) + 'h'
+}
+
+// ✅ 判断当前行是否有加班（用于样式控制）
+const hasOvertime = (task: DailyTask): boolean => {
+  if (task._editing) {
+    return calcWorkHours(task.start_time, task.end_time).overtime > 0
+  }
+  return (task.overtime_hours ?? 0) > 0
+}
+
+// ==================== UID 生成 ====================
+let uidCounter = 0
+const generateUid = () => `_uid_${Date.now()}_${++uidCounter}`
+
+// ==================== CRUD 操作 ====================
 const addNewRow = () => {
-  const newRow: DailyTask & { _uid: string; _editing: boolean } = {
-    _uid: generateUid(),
-    _editing: true,
+  editableTasks.value.push({
     date: selectedDate.value,
     executor: '',
     status: '工作',
     client: '',
     content: '',
-    quantity: 1,
     level: 'B',
+    start_time: '10:00',
+    end_time: '18:30',
+    actual_duration: 0,
+    normal_hours: 0,
+    overtime_hours: 0,
     is_delayed: false,
     is_cancelled: false,
-    start_time: '09:00',
-    end_time: '18:00',
-    project_manager: '',
-    actual_duration: 0,
-  };
-  editableTasks.value.unshift(newRow);
-};
+    _uid: generateUid(),
+    _editing: true,
+  })
+}
 
 const startEdit = (index: number) => {
-  const task = getTask(index);
-  task._backup = JSON.parse(JSON.stringify(task));
-  task._editing = true;
-};
+  const task = getTask(index)
+  task._backup = JSON.parse(JSON.stringify(task))
+  task._editing = true
+}
 
 const cancelEdit = (index: number) => {
-  const task = getTask(index);
+  const task = getTask(index)
   if (task._backup) {
-    // 使用 Object.assign 时确保目标不为 undefined
-    Object.assign(task, task._backup);
+    Object.assign(task, task._backup)
   } else {
-    editableTasks.value.splice(index, 1);
-    return;
+    editableTasks.value.splice(index, 1)
+    return
   }
-  task._editing = false;
-  delete task._backup;
-};
+  task._editing = false
+  delete task._backup
+}
 
 const saveRow = async (index: number) => {
-  const task = getTask(index);
-  
+  const task = getTask(index)
+
   if (!task.executor || !task.content || !task.client) {
-    alert('请填写执行人、客户和工作内容');
-    return;
+    alert('请填写执行人、客户和工作内容')
+    return
   }
 
-  task.actual_duration = calcDurationValue(task);
-  
-  // TODO: API 调用...
-  
-  task._editing = false;
-  delete task._backup;
-  console.log('✅ 已保存:', task);
-};
+  // ✅ 使用新引擎计算三项工时
+  const hours = calcWorkHours(task.start_time, task.end_time)
+  task.actual_duration = hours.total
+  task.normal_hours = hours.normal
+  task.overtime_hours = hours.overtime
+
+  // TODO: 替换为真实API调用
+  // const payload = { ...task };
+  // delete payload._uid; delete payload._editing; delete payload._backup;
+  // await fetch(task.id ? `/api/tasks/${task.id}` : '/api/tasks', {
+  //   method: task.id ? 'PUT' : 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  // });
+
+  task._editing = false
+  delete task._backup
+  console.log('✅ 已保存:', task)
+}
 
 const deleteRow = async (index: number) => {
-  const task = getTask(index);
-  if (!confirm(`确定删除 ${task.executor} 的任务「${task.content}」？`)) return;
-  
-  // TODO: API 删除...
-  
-  editableTasks.value.splice(index, 1);
-};
+  const task = getTask(index)
+  if (!confirm(`确定删除 ${task.executor} 的任务「${task.content}」？`)) return
 
-// ==================== 计算逻辑 ====================
-const calcDurationValue = (task: Pick<DailyTask, 'start_time' | 'end_time'>): number => {
-  if (!task.start_time || !task.end_time) return 0;
-  const startParts = task.start_time.split(':').map(Number);
-  const endParts = task.end_time.split(':').map(Number);
-  const sh = startParts[0] ?? 0;
-  const sm = startParts[1] ?? 0;
-  const eh = endParts[0] ?? 0;
-  const em = endParts[1] ?? 0;
-  const minutes = (eh * 60 + em) - (sh * 60 + sm);
-  return Math.max(0, minutes / 60);
-};
+  // TODO: await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' })
 
-// ✅ 修改后
-const calcDuration = (task: DailyTask): string => {
-  if (task._editing) {
-    return calcDurationValue(task).toFixed(2) + 'h';
+  editableTasks.value.splice(index, 1)
+}
+
+const addDynamicOption = (key: keyof typeof dynamicOptions.value, val: string) => {
+  if (val && !dynamicOptions.value[key].includes(val)) {
+    dynamicOptions.value[key].push(val)
   }
-  return (task.actual_duration ?? 0).toFixed(2) + 'h';
-};
-
-const formatTime = (val: string) => val || '-';
-
-// ==================== 统计（与之前相同） ====================
-const validTasks = computed(() => editableTasks.value.filter(t => !t.is_cancelled));
-const stats = computed(() => ({
-  validTasks: validTasks.value.length,
-  totalHours: validTasks.value.reduce((s, t) => s + (t._editing ? calcDurationValue(t) : (t.actual_duration || 0)), 0),
-  delayedCount: validTasks.value.filter(t => t.is_delayed).length,
-}));
-const statusCount = computed(() => {
-  const m = { working: 0, standby: 0, leave: 0 };
-  editableTasks.value.forEach(t => {
-    if (t.status === '工作') m.working++;
-    else if (t.status === '待命') m.standby++;
-    else m.leave++;
-  });
-  return m;
-});
+}
 </script>

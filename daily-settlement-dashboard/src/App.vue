@@ -1,7 +1,7 @@
 <template>
-  <DailyDashboard />
+  <MainLayout />
 </template>
 
 <script setup lang="ts">
-import DailyDashboard from './components/DailyDashboard.vue'
+import MainLayout from './layouts/MainLayout.vue'
 </script>
