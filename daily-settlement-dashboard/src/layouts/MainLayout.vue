@@ -27,9 +27,14 @@
     </aside>
 
     <!-- ✅ 主内容区 -->
-    <div class="page-wrapper">
+  <div class="page-wrapper">
       <div class="page-body">
-        <router-view />
+        <!-- ✅ 用 KeepAlive 包裹 router-view -->
+        <router-view v-slot="{ Component }">
+          <keep-alive :include="['DailyDashboard']">
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </div>
     </div>
   </div>

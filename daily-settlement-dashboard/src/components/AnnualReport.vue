@@ -113,13 +113,13 @@ onMounted(async () => {
   // allTasks.value = await res.json();
   
   // 临时Mock数据用于验证UI
-  allTasks.value = [
-    { executor: '张三', status: '工作', level: 'A', is_delayed: false, is_cancelled: false, normal_hours: 7, overtime_hours: 1.5, date: '2026-01-15' },
-    { executor: '张三', status: '工作', level: 'B', is_delayed: true, is_cancelled: false, normal_hours: 8, overtime_hours: 0, date: '2026-02-20' },
-    { executor: '李四', status: '请假', level: 'A', is_delayed: false, is_cancelled: false, normal_hours: 0, overtime_hours: 0, date: '2026-03-01' },
-    { executor: '李四', status: '工作', level: 'A', is_delayed: false, is_cancelled: true, normal_hours: 6, overtime_hours: 2, date: '2026-03-15' },
-  ];
-});
+//   allTasks.value = [
+//     { executor: '张三', status: '工作', level: 'A', is_delayed: false, is_cancelled: false, normal_hours: 7, overtime_hours: 1.5, date: '2026-01-15' },
+//     { executor: '张三', status: '工作', level: 'B', is_delayed: true, is_cancelled: false, normal_hours: 8, overtime_hours: 0, date: '2026-02-20' },
+//     { executor: '李四', status: '请假', level: 'A', is_delayed: false, is_cancelled: false, normal_hours: 0, overtime_hours: 0, date: '2026-03-01' },
+//     { executor: '李四', status: '工作', level: 'A', is_delayed: false, is_cancelled: true, normal_hours: 6, overtime_hours: 2, date: '2026-03-15' },
+//   ];
+// });
 
 const filteredTasks = computed(() => 
   allTasks.value.filter(t => t.date?.startsWith(String(selectedYear.value)))
