@@ -26,10 +26,8 @@
 //   note?: string
 // }
 
-// // ✅ 移除 localStorage 读取，初始化为空数组
 // const records = ref<DailyRecord[]>([])
 
-// // ✅ 移除 watch + localStorage.setItem
 
 // export function useDailySettlement() {
 //   const selectedDate = ref('')

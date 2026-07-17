@@ -2,7 +2,7 @@
   <div class="page-wrapper">
     <div class="container-xl">
       <div class="row g-2 align-items-center mb-4">
-        <div class="col"><h2 class="page-title">📈 年度人员效能统计</h2></div>
+        <div class="col"><h2 class="page-title"> 年度人员效能统计 </h2></div>
         <div class="col-auto">
           <select v-model="selectedYear" class="form-select w-auto">
             <option v-for="y in availableYears" :key="y" :value="y">{{ y }} 年</option>
@@ -10,7 +10,6 @@
         </div>
       </div>
 
-      <!-- 汇总卡片 -->
       <div class="row row-deck row-cards mb-4">
         <div class="col-sm-6 col-lg-3">
           <div class="card"><div class="card-body">
@@ -37,10 +36,8 @@
           </div></div>
         </div>
       </div>
-
-      <!-- 人员明细表 -->
       <div class="card">
-        <div class="card-header"><h3 class="card-title">执行人年度明细</h3></div>
+        <div class="card-header"><h3 class="card-title"> 执行人年度明细 </h3></div>
         <div class="table-responsive">
           <table class="table table-vcenter card-table table-striped">
             <thead>
